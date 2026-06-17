@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老徐帥照生成器</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>老徐帥照產生器</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     <style>
         body {
@@ -22,6 +22,8 @@
             font-size: 24px;
             text-align: center;
         }
+        
+        /* 控制面板：手機版預設上下堆疊 */
         .control-panel {
             background: white;
             padding: 15px;
@@ -29,48 +31,37 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             display: flex;
-            flex-direction: column; /* 手機端預設由上往下排 */
+            flex-direction: column;
             gap: 15px;
             width: 100%;
-            max-width: 800px;
+            max-width: 820px;
             box-sizing: border-box;
         }
-        /* 每一行控制項目的包裹區塊 */
-        .control-row {
+        
+        .upload-wrapper {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
+            justify-content: center;
             width: 100%;
         }
-        .btn {
-            background-color: #3498db;
+        
+        #upload-input {
+            display: none;
+        }
+        .upload-label {
+            background-color: #e67e22;
             color: white;
-            border: none;
             padding: 10px 15px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
-            transition: background 0.2s;
-            flex: 1; /* 在手機上能均分寬度 */
-            min-width: 120px;
             text-align: center;
+            width: 100%;
+            box-sizing: border-box;
         }
-        .btn:hover {
-            background-color: #2980b9;
+        .upload-label:hover {
+            background-color: #d35400;
         }
-        .btn-export {
-            background-color: #2ecc71;
-        }
-        .btn-export:hover {
-            background-color: #27ae60;
-        }
-        .btn-flip {
-            background-color: #9b59b6;
-        }
-        .btn-flip:hover {
-            background-color: #8e44ad;
-        }
+
         .stamp-section {
             display: flex;
             flex-direction: column;
@@ -81,12 +72,19 @@
             font-size: 14px;
             font-weight: bold;
             color: #444;
+            text-align: center;
+        }
+        .hint-text {
+            font-size: 12px;
+            color: #e67e22;
+            margin-top: 20px;
+            font-weight: normal;
         }
         .stamp-container {
             display: flex;
             gap: 10px;
-            align-items: center;
-            flex-wrap: wrap; /* 讓圖片在手機螢幕不夠寬時自動換行 */
+            justify-content: center;
+            flex-wrap: wrap;
         }
         .stamp-preview {
             width: 55px;
@@ -102,14 +100,38 @@
             transform: scale(1.05);
             border-color: #3498db;
         }
-        /* 新增：提示字體樣式 */
-        .hint-text {
-            font-size: 12px;
-            color: #e67e22;
-            margin-top: 2px;
-            font-weight: normal;
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .btn {
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+        }
+        .btn-flip {
+            background-color: #9b59b6;
+        }
+        .btn-flip:hover {
+            background-color: #8e44ad;
+        }
+        .btn-export {
+            background-color: #2ecc71;
+        }
+        .btn-export:hover {
+            background-color: #27ae60;
         }
         
+        /* 工作區域：包含編輯視窗與垃圾桶 */
         .workspace {
             display: flex;
             flex-direction: column;
@@ -117,22 +139,25 @@
             gap: 15px;
             margin-bottom: 30px;
             width: 100%;
-            max-width: 800px;
+            max-width: 820px;
+            box-sizing: border-box;
         }
         
+        /* 核心優化：手機版編輯視窗往內縮，兩側留白方便手指滑動頁面 */
         .canvas-wrapper {
             background: #fff;
             border: 2px dashed #ccc;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            width: 100%;
+            width: 82%; /* 手機端向內縮小，左右留出 9% 的空間當作安全滑動滑道 */
             display: flex;
             justify-content: center;
+            box-sizing: border-box;
         }
         
         .trash-zone {
-            width: 100%;
+            width: 82%; /* 與畫布同步縮小，維持視覺一體性 */
             height: 60px;
             background-color: #fee2e2;
             border: 2px dashed #ef4444;
@@ -148,22 +173,6 @@
             box-sizing: border-box;
         }
 
-        #upload-input {
-            display: none;
-        }
-        .upload-label {
-            background-color: #e67e22;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            text-align: center;
-            min-width: 100px;
-        }
-        .upload-label:hover {
-            background-color: #d35400;
-        }
         .result-panel {
             display: none;
             background: white;
@@ -172,7 +181,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             text-align: center;
             width: 100%;
-            max-width: 800px;
+            max-width: 820px;
             box-sizing: border-box;
             margin-bottom: 40px;
         }
@@ -204,41 +213,64 @@
             letter-spacing: 0.5px;
         }
 
-        /* 電腦版排版微調：當螢幕寬度大於 600px 時改為橫向排列 */
-        @media (min-width: 600px) {
+        /* 🖥️ 完美的電腦版響應式覆蓋 (RWD) */
+        @media (min-width: 768px) {
             .control-panel {
                 flex-direction: row;
-                justify-content: space-between;
                 align-items: center;
+                justify-content: space-between;
+                padding: 15px 25px;
+            }
+            .upload-wrapper {
+                width: auto;
+            }
+            .upload-label {
+                width: 120px;
             }
             .stamp-section {
                 width: auto;
                 flex: 1;
+                margin-left: 20px;
+                margin-right: 20px;
+            }
+            .stamp-label-row {
+                text-align: left;
+            }
+            .stamp-container {
+                justify-content: flex-start;
+            }
+            .btn-group {
+                width: auto;
+                flex-direction: row;
             }
             .btn {
                 flex: none;
+                width: 110px;
             }
-            .upload-label {
-                flex: none;
+            /* 電腦版不需要留側邊滑道，還原為滿版 100% 寬度 */
+            .canvas-wrapper {
+                width: 100%;
+            }
+            .trash-zone {
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
 
-    <h1>老徐帥照生成器</h1>
+    <h1>老徐帥照產生器</h1>
 
     <div class="control-panel">
-        <!-- 1. 上傳按紐 -->
-        <label for="upload-input" class="upload-label">1. 上傳底圖</label>
-        <input type="file" id="upload-input" accept="image/*">
+        <div class="upload-wrapper">
+            <label for="upload-input" class="upload-label">1. 上傳底圖</label>
+            <input type="file" id="upload-input" accept="image/*">
+        </div>
 
-        <!-- 2. 圖章選擇區 -->
         <div class="stamp-section">
             <div class="stamp-label-row">
                 2. 點擊加入老徐：
-                <!-- 按鈕下方的提示文字 -->
-                <div class="hint-text">💡 提示：可連續點擊，一次疊加多張老徐喔！</div>
+                <div class="hint-text">💡 提示：可連續點擊，一次疊加多張老徐</div>
             </div>
             <div class="stamp-container">
                 <img src="image1.png" id="stamp1" class="stamp-preview" title="點擊加入老徐 (經典)" alt="Stamp 1" crossorigin="anonymous">
@@ -249,10 +281,9 @@
             </div>
         </div>
 
-        <!-- 3. 功能操作按鈕 -->
-        <div class="control-row">
+        <div class="btn-group">
             <button class="btn btn-flip" id="btn-flip">水平反轉</button>
-            <button class="btn btn-export" id="btn-export">3. 生成圖片</button>
+            <button class="btn btn-export" id="btn-export">3. 產生圖片</button>
         </div>
     </div>
 
@@ -267,12 +298,12 @@
     </div>
 
     <div class="result-panel" id="result-panel">
-        <h3>🎉 帥照生成成功！</h3>
-        <p>💡 提示：對下方大圖點擊<b>右鍵複製/另存圖片</b>（或手機<b>長按圖片複製/另存圖片</b>），直接貼到聊天室超帥！</p>
+        <h3>🎉 帥照產生成功！</h3>
+        <p>💡 提示：對下方大圖點擊<b>右鍵複製/另存圖片</b>（或手機<b>長按圖片複製/另存圖片</b>）儲存！</p>
         <img id="result-image" src="" alt="產出結果">
     </div>
 
-    <div class="footer-version">Version 2.2.0<br>Developed by chyc307</div>
+    <div class="footer-version">Version 2.5.0<br>Developed by chyc307</div>
 
     <script>
         const canvas = new fabric.Canvas('main-canvas', {
@@ -292,7 +323,7 @@
         const resultImage = document.getElementById('result-image');
         const trashZone = document.getElementById('trash-zone');
 
-        // 1. 處理使用者上傳底圖
+        // 1. 處理使用者上傳底圖 (自適應當前畫布外層容器寬度)
         uploadInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -300,8 +331,9 @@
             const reader = new FileReader();
             reader.onload = function(f) {
                 fabric.Image.fromURL(f.target.result, function(img) {
-                    let displayWidth = window.innerWidth - 30; // 扣除 body padding
-                    if (displayWidth > 800) displayWidth = 800;
+                    // 根據當前 wrapper 的寬度來設定畫布物理大小
+                    const wrapper = document.querySelector('.canvas-wrapper');
+                    let displayWidth = wrapper.clientWidth - 4; // 扣除邊框
                     
                     const scaleFactor = displayWidth / img.width;
                     
