@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老徐帥照生成器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .control-panel {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-export {
+            background-color: #2ecc71;
+        }
+        .btn-export:hover {
+            background-color: #27ae60;
+        }
+        .btn-flip {
+            background-color: #9b59b6;
+        }
+        .btn-flip:hover {
+            background-color: #8e44ad;
+        }
+        .stamp-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .stamp-preview {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .stamp-preview:hover {
+            transform: scale(1.05);
+            border-color: #3498db;
+        }
+        .canvas-wrapper {
+            background: #fff;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        #upload-input {
+            display: none;
+        }
+        .upload-label {
+            background-color: #e67e22;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .upload-label:hover {
+            background-color: #d35400;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>帥哥編輯器</h1>
+
+    <div class="control-panel">
+        <label for="upload-input" class="upload-label">1. 上傳底圖</label>
+        <input type="file" id="upload-input" accept="image/*">
+
+        <div class="stamp-container">
+            <span>2. 點擊加入老徐：</span>
+            <img src="image1.png" id="stamp1" class="stamp-preview" title="點擊加入老徐 1" alt="Stamp 1">
+            <img src="image2.png" id="stamp2" class="stamp-preview" title="點擊加入老徐 (無毛) 2" alt="Stamp 2">
+        </div>
+
+        <button class="btn btn-flip" id="btn-flip">水平反轉選中老徐</button>
+        <button class="btn btn-export" id="btn-export">3. 匯出並下載圖片</button>
+    </div>
+
+    <div class="canvas-wrapper">
+        <canvas id="main-canvas" width="800" height="600"></canvas>
+    </div>
+
+    <script>
+        // 初始化 Fabric.js Canvas
+        const canvas = new fabric.Canvas('main-canvas', {
+            preserveObjectStacking: true // 確保選中的物件不會隨意變動層級
+        });
+
+        const uploadInput = document.getElementById('upload-input');
+        const stamp1 = document.getElementById('stamp1');
+        const stamp2 = document.getElementById('stamp2');
+        const btnFlip = document.getElementById('btn-flip');
+        const btnExport = document.getElementById('btn-export');
+
+        let bgImageWidth = 800;
+        let bgImageHeight = 600;
+
+        // 1. 處理使用者上傳底圖
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(f) {
+                fabric.Image.fromURL(f.target.result, function(img) {
+                    // 根據圖片大小調整畫布尺寸（限制最大寬度避免過大）
+                    let maxWidth = window.innerWidth * 0.8;
+                    if (maxWidth > 1000) maxWidth = 1000;
+                    
+                    const scaleFactor = maxWidth / img.width;
+                    
+                    if (img.width > maxWidth) {
+                        img.scale(scaleFactor);
+                    }
+
+                    // 設定畫布尺寸與圖片縮放後一致
+                    bgImageWidth = img.width * img.scaleX;
+                    bgImageHeight = img.height * img.scaleY;
+                    
+                    canvas.setWidth(bgImageWidth);
+                    canvas.setHeight(bgImageHeight);
+
+                    // 將圖片設為畫布背景
+                    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+                        scaleX: img.scaleX,
+                        scaleY: img.scaleY
+                    });
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 2. 點擊印章圖片時，將其加入到畫布中
+        function addStampToCanvas(imgElement) {
+            // 檢查是否有跨域問題，若圖片在 GitHub Pages 本地則沒問題
+            fabric.Image.fromURL(imgElement.src, function(img) {
+                // 設定印章初始大小與位置
+                img.scaleToWidth(120); 
+                img.set({
+                    left: canvas.width / 2 - 60,
+                    top: canvas.height / 2 - 60,
+                    cornerColor: '#3498db',
+                    cornerSize: 10,
+                    transparentCorners: false,
+                    borderColor: '#3498db'
+                });
+                
+                canvas.add(img);
+                canvas.setActiveObject(img); // 自動選取新加入的印章
+                canvas.renderAll();
+            }, { crossOrigin: 'anonymous' });
+        }
+
+        stamp1.addEventListener('click', () => addStampToCanvas(stamp1));
+        stamp2.addEventListener('click', () => addStampToCanvas(stamp2));
+
+        // 3. 水平反轉（鏡像）選中的印章
+        btnFlip.addEventListener('click', () => {
+            const activeObject = canvas.getActiveObject();
+            if (activeObject && activeObject.type === 'image') {
+                activeObject.set('flipX', !activeObject.flipX);
+                canvas.renderAll();
+            } else {
+                alert('請先點擊選取畫布上的老徐圖片！');
+            }
+        });
+
+        // 4. 匯出並下載最終圖片
+        btnExport.addEventListener('click', () => {
+            // 取消所有物件選取狀態，避免把控制框（變形框）一起印出來
+            canvas.discardActiveObject();
+            canvas.renderAll();
+
+            // 取得 Canvas 的 DataURL
+            const dataURL = canvas.toDataURL({
+                format: 'jpeg',
+                quality: 0.95
+            });
+
+            // 建立虛擬超連結觸發下載
+            const link = document.createElement('a');
+            link.download = 'stamped-image.png';
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+</body>
+</html>
