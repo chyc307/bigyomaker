@@ -80,6 +80,7 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
         }
         #upload-input {
             display: none;
@@ -95,11 +96,38 @@
         .upload-label:hover {
             background-color: #d35400;
         }
+        /* 新增：產出圖片區塊樣式 */
+        .result-panel {
+            display: none; /* 預設隱藏，生成後才顯示 */
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 90%;
+            margin-top: 10px;
+        }
+        .result-panel h3 {
+            margin-top: 0;
+            color: #27ae60;
+        }
+        .result-panel p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        #result-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
 
-    <h1>帥哥編輯器</h1>
+    <h1>老徐帥照生成器</h1>
 
     <div class="control-panel">
         <label for="upload-input" class="upload-label">1. 上傳底圖</label>
@@ -112,11 +140,17 @@
         </div>
 
         <button class="btn btn-flip" id="btn-flip">水平反轉選中老徐</button>
-        <button class="btn btn-export" id="btn-export">3. 匯出並下載圖片</button>
+        <button class="btn btn-export" id="btn-export">3. 生成並顯示大圖</button>
     </div>
 
     <div class="canvas-wrapper">
         <canvas id="main-canvas" width="800" height="600"></canvas>
+    </div>
+
+    <div class="result-panel" id="result-panel">
+        <h3>🎉 圖片生成成功！</h3>
+        <p>💡 提示：可以直接長按 (手機) 或右鍵複製圖片</p>
+        <img id="result-image" src="" alt="產出結果">
     </div>
 
     <script>
@@ -130,6 +164,8 @@
         const stamp2 = document.getElementById('stamp2');
         const btnFlip = document.getElementById('btn-flip');
         const btnExport = document.getElementById('btn-export');
+        const resultPanel = document.getElementById('result-panel');
+        const resultImage = document.getElementById('result-image');
 
         let bgImageWidth = 800;
         let bgImageHeight = 600;
@@ -171,7 +207,6 @@
 
         // 2. 點擊印章圖片時，將其加入到畫布中
         function addStampToCanvas(imgElement) {
-            // 檢查是否有跨域問題，若圖片在 GitHub Pages 本地則沒問題
             fabric.Image.fromURL(imgElement.src, function(img) {
                 // 設定印章初始大小與位置
                 img.scaleToWidth(120); 
@@ -204,25 +239,24 @@
             }
         });
 
-        // 4. 匯出並下載最終圖片
+        // 4. 修改：改為將大圖顯示在畫面上，供直接複製
         btnExport.addEventListener('click', () => {
-            // 取消所有物件選取狀態，避免把控制框（變形框）一起印出來
+            // 取消所有物件選取狀態，避免把藍色控制框（變形框）一起印出來
             canvas.discardActiveObject();
             canvas.renderAll();
 
-            // 取得 Canvas 的 DataURL
+            // 取得 Canvas 的 DataURL (這次使用 png 以完整保留去背圖層品質，如果底圖很大也可以用 jpeg)
             const dataURL = canvas.toDataURL({
-                format: 'jpeg',
-                quality: 0.95
+                format: 'png',
+                quality: 1.0
             });
 
-            // 建立虛擬超連結觸發下載
-            const link = document.createElement('a');
-            link.download = 'stamped-image.png';
-            link.href = dataURL;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // 將生成的 Base64 圖片丟給 <img> 標籤顯示
+            resultImage.src = dataURL;
+            
+            // 顯示結果區塊並自動滾動到該區域
+            resultPanel.style.display = 'block';
+            resultPanel.scrollIntoView({ behavior: 'smooth' });
         });
     </script>
 </body>
