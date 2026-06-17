@@ -74,16 +74,48 @@
             transform: scale(1.05);
             border-color: #3498db;
         }
-        .canvas-container {
-            margin-bottom: 30px !important;
+        
+        /* 調整畫布與垃圾桶的排版 */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 800px;
         }
+        
         .canvas-wrapper {
             background: #fff;
             border: 2px dashed #ccc;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
         }
+        
+        /* 新增：垃圾桶區域樣式 */
+        .trash-zone {
+            width: 100%;
+            height: 70px;
+            background-color: #fee2e2;
+            border: 2px dashed #ef4444;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #b91c1c;
+            font-weight: bold;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .trash-zone.hover {
+            background-color: #fca5a5;
+            transform: scale(1.02);
+        }
+
         #upload-input {
             display: none;
         }
@@ -107,7 +139,7 @@
             text-align: center;
             max-width: 90%;
             margin-top: 10px;
-            margin-bottom: 40px; /* 留點空間給底部的版本號 */
+            margin-bottom: 40px;
         }
         .result-panel h3 {
             margin-top: 0;
@@ -125,7 +157,6 @@
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        /* 新增：版本號頁尾樣式 */
         .footer-version {
             color: #aaa;
             font-size: 12px;
@@ -148,26 +179,33 @@
             <img src="image1.png" id="stamp1" class="stamp-preview" title="點擊加入老徐 1" alt="Stamp 1">
             <img src="image2.png" id="stamp2" class="stamp-preview" title="點擊加入老徐 (無毛) 2" alt="Stamp 2">
             <img src="image3.png" id="stamp3" class="stamp-preview" title="點擊加入老徐 (卡通) 3" alt="Stamp 3">
+            <img src="image4.jpg" id="stamp4" class="stamp-preview" title="點擊加入老徐 (後腦) 4" alt="Stamp 4">
+            <img src="image5.jpg" id="stamp5" class="stamp-preview" title="點擊加入老徐 (頭髮) 5" alt="Stamp 5">
         </div>
 
         <button class="btn btn-flip" id="btn-flip">水平反轉選中老徐</button>
         <button class="btn btn-export" id="btn-export">3. 生成並顯示圖片</button>
     </div>
 
-    <div class="canvas-wrapper">
-        <canvas id="main-canvas" width="800" height="600"></canvas>
+    <div class="workspace">
+        <div class="canvas-wrapper">
+            <canvas id="main-canvas" width="800" height="600"></canvas>
+        </div>
+        
+        <div class="trash-zone" id="trash-zone">
+            🗑️ 拖曳老徐到這裡刪除
+        </div>
     </div>
 
     <div class="result-panel" id="result-panel">
-        <h3>🎉 高清圖片生成成功！</h3>
-        <p>💡 提示：您現在可以對下方大圖點擊<b>右鍵複製/另存圖片</b>（或手機<b>長按圖片複製/另存圖片</b>），直接貼到聊天室超帥！</p>
+        <h3>🎉 圖片生成成功！</h3>
+        <p>💡 提示：對下方大圖點擊<b>右鍵複製/另存圖片</b>（或手機<b>長按圖片複製/另存圖片</b>），直接貼到聊天室超帥！</p>
         <img id="result-image" src="" alt="產出結果">
     </div>
 
-    <div class="footer-version">Version 1.1.0<br>Developed by chyc307</div>
+    <div class="footer-version">Version 2.0.0<br>Developed by chyc307</div>
 
     <script>
-        // 初始化 Canvas，啟用高 DPI 支援
         const canvas = new fabric.Canvas('main-canvas', {
             preserveObjectStacking: true,
             enableRetinaScaling: true 
@@ -177,10 +215,13 @@
         const stamp1 = document.getElementById('stamp1');
         const stamp2 = document.getElementById('stamp2');
         const stamp3 = document.getElementById('stamp3');
+        const stamp4 = document.getElementById('stamp4');
+        const stamp5 = document.getElementById('stamp5');
         const btnFlip = document.getElementById('btn-flip');
         const btnExport = document.getElementById('btn-export');
         const resultPanel = document.getElementById('result-panel');
         const resultImage = document.getElementById('result-image');
+        const trashZone = document.getElementById('trash-zone'); // 垃圾桶元素
 
         // 1. 處理使用者上傳底圖
         uploadInput.addEventListener('change', function(e) {
@@ -209,14 +250,14 @@
             reader.readAsDataURL(file);
         });
 
-        // 2. 點擊印章圖片時，將其加入到畫布中
+        // 2. 點擊印章圖片時，將其加入到畫布中（點一下就疊一張，可重複點擊疊加）
         function addStampToCanvas(imgElement) {
             fabric.Image.fromURL(imgElement.src, function(img) {
                 const initialWidth = canvas.width * 0.25; 
                 img.scaleToWidth(initialWidth); 
                 img.set({
-                    left: canvas.width / 2 - (initialWidth / 2),
-                    top: canvas.height / 2 - (initialWidth / 2),
+                    left: canvas.width / 2 - (initialWidth / 2) + (Math.random() * 30 - 15), // 微調隨機位置避免完全重疊
+                    top: canvas.height / 2 - (initialWidth / 2) + (Math.random() * 30 - 15),
                     cornerColor: '#3498db',
                     cornerSize: window.devicePixelRatio > 1 ? 15 : 10,
                     transparentCorners: false,
@@ -232,12 +273,68 @@
         stamp1.addEventListener('click', () => addStampToCanvas(stamp1));
         stamp2.addEventListener('click', () => addStampToCanvas(stamp2));
         stamp3.addEventListener('click', () => addStampToCanvas(stamp3));
+        stamp4.addEventListener('click', () => addStampToCanvas(stamp4));
+        stamp5.addEventListener('click', () => addStampToCanvas(stamp5));
+
+        // 🔥 新增：偵測拖曳物件是否進入垃圾桶範圍並刪除
+        canvas.on('mouse:up', function(options) {
+            const activeObject = canvas.getActiveObject();
+            if (!activeObject || activeObject.type !== 'image') return;
+
+            // 獲取目前滑鼠放開時在網頁上的絕對座標
+            const pointerEvent = options.e;
+            let clientX = pointerEvent.clientX;
+            let clientY = pointerEvent.clientY;
+
+            // 支援手機觸控事件
+            if (pointerEvent.touches && pointerEvent.touches.length > 0) {
+                clientX = pointerEvent.touches[0].clientX;
+                clientY = pointerEvent.touches[0].clientY;
+            } else if (pointerEvent.changedTouches && pointerEvent.changedTouches.length > 0) {
+                clientX = pointerEvent.changedTouches[0].clientX;
+                clientY = pointerEvent.changedTouches[0].clientY;
+            }
+
+            // 取得垃圾桶在網頁上的邊界區塊位置
+            const trashRect = trashZone.getBoundingClientRect();
+
+            // 判斷滑鼠釋放點是否在垃圾桶矩形範圍內
+            if (
+                clientX >= trashRect.left &&
+                clientX <= trashRect.right &&
+                clientY >= trashRect.top &&
+                clientY <= trashRect.bottom
+            ) {
+                // 如果是多選（同時拖拉多張），批次刪除
+                if (activeObject.type === 'activeSelection') {
+                    activeObject.forEachObject(function(obj) {
+                        canvas.remove(obj);
+                    });
+                    canvas.discardActiveObject();
+                } else {
+                    // 單張圖片刪除
+                    canvas.remove(activeObject);
+                }
+                canvas.renderAll();
+                
+                // 播放一個簡單的視覺反饋
+                trashZone.style.backgroundColor = '#fca5a5';
+                setTimeout(() => { trashZone.style.backgroundColor = '#fee2e2'; }, 200);
+            }
+        });
 
         // 3. 水平反轉（鏡像）選中的印章
         btnFlip.addEventListener('click', () => {
             const activeObject = canvas.getActiveObject();
-            if (activeObject && activeObject.type === 'image') {
-                activeObject.set('flipX', !activeObject.flipX);
+            if (activeObject) {
+                if (activeObject.type === 'activeSelection') {
+                    // 如果選取了多張，同時進行反轉
+                    activeObject.forEachObject(function(obj) {
+                        obj.set('flipX', !obj.flipX);
+                    });
+                } else if (activeObject.type === 'image') {
+                    activeObject.set('flipX', !activeObject.flipX);
+                }
                 canvas.renderAll();
             } else {
                 alert('請先點擊選取畫布上的老徐圖片！');
