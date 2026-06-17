@@ -74,13 +74,15 @@
             transform: scale(1.05);
             border-color: #3498db;
         }
+        .canvas-container {
+            margin-bottom: 30px !important;
+        }
         .canvas-wrapper {
             background: #fff;
             border: 2px dashed #ccc;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
         }
         #upload-input {
             display: none;
@@ -96,9 +98,8 @@
         .upload-label:hover {
             background-color: #d35400;
         }
-        /* 新增：產出圖片區塊樣式 */
         .result-panel {
-            display: none; /* 預設隱藏，生成後才顯示 */
+            display: none;
             background: white;
             padding: 20px;
             border-radius: 8px;
@@ -106,6 +107,7 @@
             text-align: center;
             max-width: 90%;
             margin-top: 10px;
+            margin-bottom: 40px; /* 留點空間給底部的版本號 */
         }
         .result-panel h3 {
             margin-top: 0;
@@ -123,11 +125,19 @@
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+        /* 新增：版本號頁尾樣式 */
+        .footer-version {
+            color: #aaa;
+            font-size: 12px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>老徐帥照生成器</h1>
+    <h1>帥哥編輯器 (高清修復版)</h1>
 
     <div class="control-panel">
         <label for="upload-input" class="upload-label">1. 上傳底圖</label>
@@ -137,10 +147,11 @@
             <span>2. 點擊加入老徐：</span>
             <img src="image1.png" id="stamp1" class="stamp-preview" title="點擊加入老徐 1" alt="Stamp 1">
             <img src="image2.png" id="stamp2" class="stamp-preview" title="點擊加入老徐 (無毛) 2" alt="Stamp 2">
+            <img src="image3.png" id="stamp3" class="stamp-preview" title="點擊加入老徐 (卡通) 3" alt="Stamp 3">
         </div>
 
         <button class="btn btn-flip" id="btn-flip">水平反轉選中老徐</button>
-        <button class="btn btn-export" id="btn-export">3. 生成並顯示大圖</button>
+        <button class="btn btn-export" id="btn-export">3. 生成並顯示圖片</button>
     </div>
 
     <div class="canvas-wrapper">
@@ -148,27 +159,28 @@
     </div>
 
     <div class="result-panel" id="result-panel">
-        <h3>🎉 圖片生成成功！</h3>
-        <p>💡 提示：可以直接長按 (手機) 或右鍵複製圖片</p>
+        <h3>🎉 高清圖片生成成功！</h3>
+        <p>💡 提示：您現在可以對下方大圖點擊<b>右鍵複製/另存圖片</b>（或手機<b>長按圖片複製/另存圖片</b>），直接貼到聊天室超帥！</p>
         <img id="result-image" src="" alt="產出結果">
     </div>
 
+    <div class="footer-version">Version 1.1.0<br>Developed by chyc307</div>
+
     <script>
-        // 初始化 Fabric.js Canvas
+        // 初始化 Canvas，啟用高 DPI 支援
         const canvas = new fabric.Canvas('main-canvas', {
-            preserveObjectStacking: true // 確保選中的物件不會隨意變動層級
+            preserveObjectStacking: true,
+            enableRetinaScaling: true 
         });
 
         const uploadInput = document.getElementById('upload-input');
         const stamp1 = document.getElementById('stamp1');
         const stamp2 = document.getElementById('stamp2');
+        const stamp3 = document.getElementById('stamp3');
         const btnFlip = document.getElementById('btn-flip');
         const btnExport = document.getElementById('btn-export');
         const resultPanel = document.getElementById('result-panel');
         const resultImage = document.getElementById('result-image');
-
-        let bgImageWidth = 800;
-        let bgImageHeight = 600;
 
         // 1. 處理使用者上傳底圖
         uploadInput.addEventListener('change', function(e) {
@@ -178,28 +190,20 @@
             const reader = new FileReader();
             reader.onload = function(f) {
                 fabric.Image.fromURL(f.target.result, function(img) {
-                    // 根據圖片大小調整畫布尺寸（限制最大寬度避免過大）
-                    let maxWidth = window.innerWidth * 0.8;
-                    if (maxWidth > 1000) maxWidth = 1000;
+                    let displayWidth = window.innerWidth * 0.9;
+                    if (displayWidth > 800) displayWidth = 800;
                     
-                    const scaleFactor = maxWidth / img.width;
+                    const scaleFactor = displayWidth / img.width;
                     
-                    if (img.width > maxWidth) {
-                        img.scale(scaleFactor);
-                    }
+                    canvas.setWidth(displayWidth);
+                    canvas.setHeight(img.height * scaleFactor);
 
-                    // 設定畫布尺寸與圖片縮放後一致
-                    bgImageWidth = img.width * img.scaleX;
-                    bgImageHeight = img.height * img.scaleY;
-                    
-                    canvas.setWidth(bgImageWidth);
-                    canvas.setHeight(bgImageHeight);
-
-                    // 將圖片設為畫布背景
-                    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
-                        scaleX: img.scaleX,
-                        scaleY: img.scaleY
+                    img.set({
+                        scaleX: scaleFactor,
+                        scaleY: scaleFactor
                     });
+
+                    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
                 });
             };
             reader.readAsDataURL(file);
@@ -208,25 +212,26 @@
         // 2. 點擊印章圖片時，將其加入到畫布中
         function addStampToCanvas(imgElement) {
             fabric.Image.fromURL(imgElement.src, function(img) {
-                // 設定印章初始大小與位置
-                img.scaleToWidth(120); 
+                const initialWidth = canvas.width * 0.25; 
+                img.scaleToWidth(initialWidth); 
                 img.set({
-                    left: canvas.width / 2 - 60,
-                    top: canvas.height / 2 - 60,
+                    left: canvas.width / 2 - (initialWidth / 2),
+                    top: canvas.height / 2 - (initialWidth / 2),
                     cornerColor: '#3498db',
-                    cornerSize: 10,
+                    cornerSize: window.devicePixelRatio > 1 ? 15 : 10,
                     transparentCorners: false,
                     borderColor: '#3498db'
                 });
                 
                 canvas.add(img);
-                canvas.setActiveObject(img); // 自動選取新加入的印章
+                canvas.setActiveObject(img);
                 canvas.renderAll();
             }, { crossOrigin: 'anonymous' });
         }
 
         stamp1.addEventListener('click', () => addStampToCanvas(stamp1));
         stamp2.addEventListener('click', () => addStampToCanvas(stamp2));
+        stamp3.addEventListener('click', () => addStampToCanvas(stamp3));
 
         // 3. 水平反轉（鏡像）選中的印章
         btnFlip.addEventListener('click', () => {
@@ -239,24 +244,25 @@
             }
         });
 
-        // 4. 修改：改為將大圖顯示在畫面上，供直接複製
+        // 4. 匯出高清大圖
         btnExport.addEventListener('click', () => {
-            // 取消所有物件選取狀態，避免把藍色控制框（變形框）一起印出來
             canvas.discardActiveObject();
             canvas.renderAll();
 
-            // 取得 Canvas 的 DataURL (這次使用 png 以完整保留去背圖層品質，如果底圖很大也可以用 jpeg)
+            const dpr = window.devicePixelRatio || 1;
+
             const dataURL = canvas.toDataURL({
                 format: 'png',
-                quality: 1.0
+                quality: 1.0,
+                multiplier: dpr 
             });
 
-            // 將生成的 Base64 圖片丟給 <img> 標籤顯示
             resultImage.src = dataURL;
-            
-            // 顯示結果區塊並自動滾動到該區域
             resultPanel.style.display = 'block';
-            resultPanel.scrollIntoView({ behavior: 'smooth' });
+            
+            setTimeout(() => {
+                resultPanel.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
         });
     </script>
 </body>
