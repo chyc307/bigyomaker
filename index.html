@@ -11,25 +11,37 @@
             background-color: #f5f7fa;
             color: #333;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         h1 {
             color: #2c3e50;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            font-size: 24px;
+            text-align: center;
         }
         .control-panel {
             background: white;
-            padding: 15px 25px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             display: flex;
+            flex-direction: column; /* 手機端預設由上往下排 */
             gap: 15px;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+        /* 每一行控制項目的包裹區塊 */
+        .control-row {
+            display: flex;
             align-items: center;
+            gap: 12px;
             flex-wrap: wrap;
+            width: 100%;
         }
         .btn {
             background-color: #3498db;
@@ -40,6 +52,9 @@
             cursor: pointer;
             font-size: 14px;
             transition: background 0.2s;
+            flex: 1; /* 在手機上能均分寬度 */
+            min-width: 120px;
+            text-align: center;
         }
         .btn:hover {
             background-color: #2980b9;
@@ -56,31 +71,50 @@
         .btn-flip:hover {
             background-color: #8e44ad;
         }
+        .stamp-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+        .stamp-label-row {
+            font-size: 14px;
+            font-weight: bold;
+            color: #444;
+        }
         .stamp-container {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             align-items: center;
+            flex-wrap: wrap; /* 讓圖片在手機螢幕不夠寬時自動換行 */
         }
         .stamp-preview {
-            width: 60px;
-            height: 60px;
+            width: 55px;
+            height: 55px;
             object-fit: cover;
             border: 2px solid #ddd;
             border-radius: 4px;
             cursor: pointer;
             transition: transform 0.2s;
+            background: #fff;
         }
         .stamp-preview:hover {
             transform: scale(1.05);
             border-color: #3498db;
         }
+        /* 新增：提示字體樣式 */
+        .hint-text {
+            font-size: 12px;
+            color: #e67e22;
+            margin-top: 2px;
+            font-weight: normal;
+        }
         
-        /* 調整畫布與垃圾桶的排版 */
         .workspace {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
             margin-bottom: 30px;
             width: 100%;
             max-width: 800px;
@@ -93,12 +127,13 @@
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             width: 100%;
+            display: flex;
+            justify-content: center;
         }
         
-        /* 新增：垃圾桶區域樣式 */
         .trash-zone {
             width: 100%;
-            height: 70px;
+            height: 60px;
             background-color: #fee2e2;
             border: 2px dashed #ef4444;
             border-radius: 8px;
@@ -107,13 +142,10 @@
             justify-content: center;
             color: #b91c1c;
             font-weight: bold;
-            font-size: 15px;
+            font-size: 14px;
             transition: all 0.2s ease;
             cursor: pointer;
-        }
-        .trash-zone.hover {
-            background-color: #fca5a5;
-            transform: scale(1.02);
+            box-sizing: border-box;
         }
 
         #upload-input {
@@ -126,6 +158,8 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
+            text-align: center;
+            min-width: 100px;
         }
         .upload-label:hover {
             background-color: #d35400;
@@ -133,22 +167,25 @@
         .result-panel {
             display: none;
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             text-align: center;
-            max-width: 90%;
-            margin-top: 10px;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
             margin-bottom: 40px;
         }
         .result-panel h3 {
             margin-top: 0;
             color: #27ae60;
+            font-size: 18px;
         }
         .result-panel p {
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
             margin-bottom: 15px;
+            line-height: 1.4;
         }
         #result-image {
             max-width: 100%;
@@ -159,10 +196,31 @@
         }
         .footer-version {
             color: #aaa;
-            font-size: 12px;
-            margin-top: 20px;
+            font-size: 11px;
+            margin-top: 10px;
             margin-bottom: 10px;
+            text-align: center;
+            line-height: 1.5;
             letter-spacing: 0.5px;
+        }
+
+        /* 電腦版排版微調：當螢幕寬度大於 600px 時改為橫向排列 */
+        @media (min-width: 600px) {
+            .control-panel {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .stamp-section {
+                width: auto;
+                flex: 1;
+            }
+            .btn {
+                flex: none;
+            }
+            .upload-label {
+                flex: none;
+            }
         }
     </style>
 </head>
@@ -171,20 +229,31 @@
     <h1>老徐帥照生成器</h1>
 
     <div class="control-panel">
+        <!-- 1. 上傳按紐 -->
         <label for="upload-input" class="upload-label">1. 上傳底圖</label>
         <input type="file" id="upload-input" accept="image/*">
 
-        <div class="stamp-container">
-            <span>2. 點擊加入老徐：</span>
-            <img src="image1.png" id="stamp1" class="stamp-preview" title="點擊加入老徐 1" alt="Stamp 1">
-            <img src="image2.png" id="stamp2" class="stamp-preview" title="點擊加入老徐 (無毛) 2" alt="Stamp 2">
-            <img src="image3.png" id="stamp3" class="stamp-preview" title="點擊加入老徐 (卡通) 3" alt="Stamp 3">
-            <img src="image4.png" id="stamp4" class="stamp-preview" title="點擊加入老徐 (後腦) 4" alt="Stamp 4">
-            <img src="image5.png" id="stamp5" class="stamp-preview" title="點擊加入老徐 (頭髮) 5" alt="Stamp 5">
+        <!-- 2. 圖章選擇區 -->
+        <div class="stamp-section">
+            <div class="stamp-label-row">
+                2. 點擊加入老徐：
+                <!-- 按鈕下方的提示文字 -->
+                <div class="hint-text">💡 提示：可連續點擊，一次疊加多張老徐喔！</div>
+            </div>
+            <div class="stamp-container">
+                <img src="image1.png" id="stamp1" class="stamp-preview" title="點擊加入老徐 (經典)" alt="Stamp 1" crossorigin="anonymous">
+                <img src="image2.png" id="stamp2" class="stamp-preview" title="點擊加入老徐 (無毛)" alt="Stamp 2" crossorigin="anonymous">
+                <img src="image3.png" id="stamp3" class="stamp-preview" title="點擊加入老徐 (卡通)" alt="Stamp 3" crossorigin="anonymous">
+                <img src="image4.png" id="stamp4" class="stamp-preview" title="點擊加入老徐 (後腦)" alt="Stamp 4" crossorigin="anonymous">
+                <img src="image5.png" id="stamp5" class="stamp-preview" title="點擊加入老徐 (頭髮)" alt="Stamp 5" crossorigin="anonymous">
+            </div>
         </div>
 
-        <button class="btn btn-flip" id="btn-flip">水平反轉選中老徐</button>
-        <button class="btn btn-export" id="btn-export">3. 生成並顯示圖片</button>
+        <!-- 3. 功能操作按鈕 -->
+        <div class="control-row">
+            <button class="btn btn-flip" id="btn-flip">水平反轉</button>
+            <button class="btn btn-export" id="btn-export">3. 生成圖片</button>
+        </div>
     </div>
 
     <div class="workspace">
@@ -198,12 +267,12 @@
     </div>
 
     <div class="result-panel" id="result-panel">
-        <h3>🎉 圖片生成成功！</h3>
+        <h3>🎉 帥照生成成功！</h3>
         <p>💡 提示：對下方大圖點擊<b>右鍵複製/另存圖片</b>（或手機<b>長按圖片複製/另存圖片</b>），直接貼到聊天室超帥！</p>
         <img id="result-image" src="" alt="產出結果">
     </div>
 
-    <div class="footer-version">Version 2.0.0<br>Developed by chyc307</div>
+    <div class="footer-version">Version 2.2.0<br>Developed by chyc307</div>
 
     <script>
         const canvas = new fabric.Canvas('main-canvas', {
@@ -221,7 +290,7 @@
         const btnExport = document.getElementById('btn-export');
         const resultPanel = document.getElementById('result-panel');
         const resultImage = document.getElementById('result-image');
-        const trashZone = document.getElementById('trash-zone'); // 垃圾桶元素
+        const trashZone = document.getElementById('trash-zone');
 
         // 1. 處理使用者上傳底圖
         uploadInput.addEventListener('change', function(e) {
@@ -231,7 +300,7 @@
             const reader = new FileReader();
             reader.onload = function(f) {
                 fabric.Image.fromURL(f.target.result, function(img) {
-                    let displayWidth = window.innerWidth * 0.9;
+                    let displayWidth = window.innerWidth - 30; // 扣除 body padding
                     if (displayWidth > 800) displayWidth = 800;
                     
                     const scaleFactor = displayWidth / img.width;
@@ -245,18 +314,22 @@
                     });
 
                     canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-                });
+                }, { crossOrigin: 'anonymous' });
             };
             reader.readAsDataURL(file);
         });
 
-        // 2. 點擊印章圖片時，將其加入到畫布中（點一下就疊一張，可重複點擊疊加）
+        // 2. 點擊印章圖片時，將其加入到畫布中
         function addStampToCanvas(imgElement) {
             fabric.Image.fromURL(imgElement.src, function(img) {
+                if (!img) {
+                    alert('圖片載入失敗，請確認檔案名稱與路徑是否正確！');
+                    return;
+                }
                 const initialWidth = canvas.width * 0.25; 
                 img.scaleToWidth(initialWidth); 
                 img.set({
-                    left: canvas.width / 2 - (initialWidth / 2) + (Math.random() * 30 - 15), // 微調隨機位置避免完全重疊
+                    left: canvas.width / 2 - (initialWidth / 2) + (Math.random() * 30 - 15), 
                     top: canvas.height / 2 - (initialWidth / 2) + (Math.random() * 30 - 15),
                     cornerColor: '#3498db',
                     cornerSize: window.devicePixelRatio > 1 ? 15 : 10,
@@ -276,17 +349,15 @@
         stamp4.addEventListener('click', () => addStampToCanvas(stamp4));
         stamp5.addEventListener('click', () => addStampToCanvas(stamp5));
 
-        // 🔥 新增：偵測拖曳物件是否進入垃圾桶範圍並刪除
+        // 偵測拖曳物件是否進入垃圾桶範圍並刪除
         canvas.on('mouse:up', function(options) {
             const activeObject = canvas.getActiveObject();
-            if (!activeObject || activeObject.type !== 'image') return;
+            if (!activeObject) return;
 
-            // 獲取目前滑鼠放開時在網頁上的絕對座標
             const pointerEvent = options.e;
             let clientX = pointerEvent.clientX;
             let clientY = pointerEvent.clientY;
 
-            // 支援手機觸控事件
             if (pointerEvent.touches && pointerEvent.touches.length > 0) {
                 clientX = pointerEvent.touches[0].clientX;
                 clientY = pointerEvent.touches[0].clientY;
@@ -295,29 +366,24 @@
                 clientY = pointerEvent.changedTouches[0].clientY;
             }
 
-            // 取得垃圾桶在網頁上的邊界區塊位置
             const trashRect = trashZone.getBoundingClientRect();
 
-            // 判斷滑鼠釋放點是否在垃圾桶矩形範圍內
             if (
                 clientX >= trashRect.left &&
                 clientX <= trashRect.right &&
                 clientY >= trashRect.top &&
                 clientY <= trashRect.bottom
             ) {
-                // 如果是多選（同時拖拉多張），批次刪除
                 if (activeObject.type === 'activeSelection') {
                     activeObject.forEachObject(function(obj) {
                         canvas.remove(obj);
                     });
                     canvas.discardActiveObject();
                 } else {
-                    // 單張圖片刪除
                     canvas.remove(activeObject);
                 }
                 canvas.renderAll();
                 
-                // 播放一個簡單的視覺反饋
                 trashZone.style.backgroundColor = '#fca5a5';
                 setTimeout(() => { trashZone.style.backgroundColor = '#fee2e2'; }, 200);
             }
@@ -328,11 +394,10 @@
             const activeObject = canvas.getActiveObject();
             if (activeObject) {
                 if (activeObject.type === 'activeSelection') {
-                    // 如果選取了多張，同時進行反轉
                     activeObject.forEachObject(function(obj) {
                         obj.set('flipX', !obj.flipX);
                     });
-                } else if (activeObject.type === 'image') {
+                } else {
                     activeObject.set('flipX', !activeObject.flipX);
                 }
                 canvas.renderAll();
